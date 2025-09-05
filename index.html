@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz NTICx Interactivo</title>
+<style>
+body {font-family: Arial, sans-serif;background: #f9fafb;margin: 0;padding: 0;display: flex;justify-content: center;align-items: center;min-height: 100vh;position: relative;}
+.container {width: 90%;max-width: 800px;background: #fff;padding: 20px;border-radius: 10px;box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+h1, h2 {text-align: center;color: #1e3a8a;}
+.hidden {display: none;}
+.register {text-align: center;}
+input[type="text"] {width: 80%;max-width: 300px;padding: 10px;margin: 10px 0;border-radius: 5px;border: 1px solid #ccc;}
+button {background: #1e3a8a;color: white;border: none;padding: 10px 20px;border-radius: 5px;font-size: 1rem;cursor: pointer;}
+button:hover {opacity: 0.9;}
+.error {color: red;margin-top: 10px;}
+#question-image {max-width: 100%;border-radius: 10px;margin-bottom: 15px;}
+.options button {display: block;width: 100%;margin: 8px 0;padding: 12px;background: #f3f4f6;color: #333;border: 1px solid #ccc;border-radius: 8px;font-size: 1rem;text-align: left;cursor: pointer;transition: background 0.3s ease;}
+.options button:hover {background: #dbeafe;}
+.feedback {text-align: center;font-weight: bold;margin: 15px 0;}
+.correct {color: #16a34a;}
+.incorrect {color: #dc2626;}
+.score {text-align: center;margin-top: 15px;font-weight: bold;color: #16a34a;}
+.credits {position: fixed;bottom: 10px;left: 10px;font-size: 0.8rem;line-height: 1.2rem;color: #555;}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="register" id="register-screen">
+        <h1>Bienvenido al Quiz NTICx</h1>
+        <p>Ingresá tu nombre para comenzar:</p>
+        <input type="text" id="username" placeholder="Tu nombre...">
+        <br>
+        <button id="start-btn">Comenzar</button>
+        <p id="error-msg" class="error hidden">Por favor, escribí tu nombre.</p>
+    </div>
+
+    <div class="quiz hidden" id="quiz-screen">
+        <h2 id="greeting"></h2>
+        <div id="question-container">
+            <img id="question-image" src="" alt="Imagen de la pregunta" class="hidden">
+            <h3 id="question-text"></h3>
+            <div class="options" id="options"></div>
+            <div id="feedback" class="feedback"></div>
+        </div>
+        <div class="score">Puntos: <span id="score">0</span></div>
+    </div>
+</div>
+
+<div class="credits">
+    ALUMNOS:<br>
+    FACUNDO CACHAZA<br>
+    NAHUEL NAVARRO<br>
+    DANAE FATECHA<br>
+    TOMAS SALTO<br>
+    TIZIANO SILVA
+</div>
+
+<script>
+const questions = [
+    { text: "¿Qué es un dato?", options: ["Son elementos aislados que representan hechos, observaciones o valores", "Datos procesados que transmiten un mensaje con significado", "Ciencia aplicada que usa el software y el hardware"], correct: 0, image: "img/imagen1.jpg" },
+    { text: "¿Qué tipo de datos son los símbolos, letras y números combinados?", options: ["Numéricos","Sonidos","Imágenes","Alfanuméricos"], correct: 3, image: "img/imagen2.jpg" },
+    { text: "¿Qué son la fusión entre telecomunicaciones e informática?", options: ["Infoware","Orgware","Telemática"], correct: 2, image: "img/imagen3.jpg" },
+    { text: "Automatización de vivienda es:", options: ["Burotica","Domótica","Nanotecnología"], correct: 1, image: "img/imagen4.jpg" },
+    { text: "Los componentes de una PC son:", options: ["Placa madre","Memoria principal","Micropresador","Todas las anteriores"], correct: 3, image: "img/imagen5.jpg" },
+    { text: "Los sistemas que gestionan el hardware y el software se les llama:", options: ["Sistema operativo","Lenguajes de programación","Software de aplicación"], correct: 0, image: "img/imagen6.jpg" },
+    { text: "Las tipos de redes que hay son:", options: ["LAN","MAN","WAN","Todas las anteriores"], correct: 3, image: "img/imagen7.jpg" },
+    { text: "Comunicación que no va en tiempo real ¿Se le llama?", options: ["Sincrónica","Asincrónica"], correct: 1, image: "img/imagen8.jpg" },
+    { text: "La topología que se conectan todos los dispositivos a uno central ¿Se le llama?", options: ["Bus","Estrella","Anillo"], correct: 1, image: "img/imagen9.jpg" },
+    { text: "La red que se usa para uso personal se le llama PAN, un ejemplo es:", options: ["Internet","Chat","Bluetooth","USB"], correct: 2, image: "img/imagen10.jpg" },
+    { text: "¿Por qué la materia NTICX tiene una X en su nombre?", options: ["Porque se relaciona con la computación","Porque busca información ilimitada","Porque da seguridad y conectividad"], correct: 2, image: "img/imagen11.jpg" }
+];
+
+const mensajesCorrecto = [
+    "¡Sos más crack que Messi en la final!","¡La rompiste como el Dibu en los penales!","¡Alta respuesta, campeón del mundo!"
+];
+const mensajesIncorrecto = [
+    "Uy, tiraste más fruta que en la verdulería… ¡Probá de nuevo!","No fue, maestro… te salió más torcido que empanada de verdura.","Casi, casi… pero se te escapó como gol de mano del Diego."
+];
+
+let currentQuestion = 0;
+let score = 0;
+let username = "";
+
+document.getElementById('start-btn').addEventListener('click', () => {
+    const input = document.getElementById('username');
+    const errorMsg = document.getElementById('error-msg');
+    username = input.value.trim();
+    if(username === "") { errorMsg.classList.remove('hidden'); return; }
+    errorMsg.classList.add('hidden');
+    document.getElementById('register-screen').classList.add('hidden');
+    document.getElementById('quiz-screen').classList.remove('hidden');
+    document.getElementById('greeting').textContent = `Hola ${username}, ¡empecemos!`;
+    loadQuestion();
+});
+
+function loadQuestion() {
+    const q = questions[currentQuestion];
+    document.getElementById('question-text').textContent = q.text;
+
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = "";
+    feedback.className = "feedback";
+
+    const img = document.getElementById('question-image');
+    if(q.image) { img.src = q.image; img.classList.remove('hidden'); }
+    else { img.src=""; img.classList.add('hidden'); }
+
+    const optionsDiv = document.getElementById('options');
+    optionsDiv.innerHTML = "";
+    q.options.forEach((option,index)=> {
+        const btn=document.createElement('button');
+        btn.textContent=option;
+        btn.onclick=()=>checkAnswer(index);
+        optionsDiv.appendChild(btn);
+    });
+}
+
+function checkAnswer(selected) {
+    const q = questions[currentQuestion];
+    const feedback = document.getElementById('feedback');
+
+    if(selected===q.correct){
+        score+=10;
+        feedback.textContent = mensajesCorrecto[Math.floor(Math.random()*mensajesCorrecto.length)];
+        feedback.className = "feedback correct";
+    } else {
+        feedback.textContent = mensajesIncorrecto[Math.floor(Math.random()*mensajesIncorrecto.length)];
+        feedback.className = "feedback incorrect";
+    }
+
+    document.getElementById('score').textContent = score;
+
+    setTimeout(()=>{
+        currentQuestion++;
+        if(currentQuestion<questions.length){ loadQuestion(); }
+        else{
+            const total = questions.length;
+            const correctas = score / 10;
+            let mensajeFinal = "";
+
+            if(correctas === total){
+                const perfectos = [
+                    "¡Crack total! Respondíste todo, sos más Messi que Messi.",
+                    "¡De diez, maestro! La rompiste como el Dibu en penales.",
+                    "¡Genio! Parecés Scaloni armando la Scaloneta del conocimiento.",
+                    "¡Imparable! No se te escapó ni una, sos un capo.",
+                    "¡Perfecto, loco! Como un asado en domingo, todo redondo.",
+                    "¡Bestia! Contestaste todo como si fueras Maradona en los ’80.",
+                    "¡Alta respuesta, crack! Se nota que estudiás y sabés lo tuyo.",
+                    "¡Una máquina! Cada respuesta un golazo.",
+                    "¡Terrible laburo! Todo correcto, te llevás la medalla.",
+                    "¡Pura magia, loco! Así se hace, maestro del conocimiento."
+                ];
+                mensajeFinal = perfectos[Math.floor(Math.random()*perfectos.length)];
+            } else if(correctas >= total*0.7){
+                const bastanteBien = [
+                    "¡Bien ahí, capo! Estuviste bien, pero conviene darle una repasada a algunas cositas.",
+                    "¡Te la bancaste! Respondíste casi todo, solo te faltó un toque de estudio.",
+                    "¡Bien, loco! No la rompiste toda, pero estás cerca del 10.",
+                    "¡Sos un capo! Algunas respuestas flojitas, pero vas por buen camino.",
+                    "¡Buen laburo! Dale un repasito y vas a estar a full."
+                ];
+                mensajeFinal = bastanteBien[Math.floor(Math.random()*bastanteBien.length)];
+            } else if(correctas >= total*0.4){
+                const masOMenos = [
+                    "Tranqui, loco… no salió todo bien. Conviene repasar más antes de la próxima.",
+                    "No estuvo mal, pero tampoco fue tu mejor día. ¡A meterle más estudio!",
+                    "Uf… te faltó un poco de mano con las respuestas. ¡Dale gas para la próxima!",
+                    "Bueno, maestro… hubo varios errores, pero se aprende de eso.",
+                    "No te achiques, loco. Te faltó práctica, pero vas a mejorar."
+                ];
+                mensajeFinal = masOMenos[Math.floor(Math.random()*masOMenos.length)];
+            } else {
+                const mal = [
+                    "Uy… esta vez no fue, che. Dale una repasada y la próxima la clavas.",
+                    "No salió nada bien, loco… ¡pero no te desanimes! A estudiar y listo.",
+                    "Se te escaparon varias, papá… conviene agarrar los apuntes otra vez.",
+                    "Bueno, maestro… esta prueba fue durita. Pero vos podés mejorar.",
+                    "Nada que hacer, loco… faltó estudio. Pero la próxima es tuya."
+                ];
+                mensajeFinal = mal[Math.floor(Math.random()*mal.length)];
+            }
+
+            const podio = `
+                <h3>¡Terminaste el quiz, ${username}!</h3>
+                <p>Puntaje final: ${score} / ${total*10}</p>
+                <p>${mensajeFinal}</p>
+                <h4>🏆 Podio de los mejores 🏆</h4>
+                <ol>
+                    <li>${username} - ${score} pts</li>
+                    <li>Jugador 2 - ${Math.max(0, score-10)} pts</li>
+                    <li>Jugador 3 - ${Math.max(0, score-20)} pts</li>
+                </ol>
+            `;
+            document.getElementById('question-container').innerHTML = podio;
+        }
+    },2000);
+}
+</script>
+</body>
+</html>
